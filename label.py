@@ -11,3 +11,5 @@ log_q_by_content = '--- ### Kualifikasi #MendataVtuberID [Akun Youtube didominas
 log_q_by_active_on_past_3_months = '--- ### Kualifikasi #MendataVtuberID [Akun Virtual Youtuber dengan keaktifan ' \
                                    'maksimal 3 bulan terakhir]'
 log_q_by_public_subs_count = '--- ### Kualifikasi #MendataVtuberID [Jumlah subscriber Youtube terlihat secara publik]'
+NO = 'Tidak'
+YES = 'Ya'

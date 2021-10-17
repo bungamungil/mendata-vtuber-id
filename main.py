@@ -64,22 +64,35 @@ for row in df.itertuples(name='Row'):
         df.loc[row.Index, cn.yt_last_video_id] = last_video['videoId']
         df.loc[row.Index, cn.yt_last_video_thumbnail] = last_video['thumbnail']['thumbnails'][-1]['url']
         df.loc[row.Index, cn.yt_last_video_title] = last_video['title']['runs'][0]['text']
-        split_published_time_text_info = last_video['publishedTimeText']['simpleText'].split()
-        if split_published_time_text_info[0] == 'Streamed':
+        if 'publishedTimeText' in last_video:
+            split_published_time_text_info = last_video['publishedTimeText']['simpleText'].split()
+            if split_published_time_text_info[0] == 'Streamed':
+                df.loc[row.Index, cn.yt_last_video_type] = 'Streaming'
+            else:
+                df.loc[row.Index, cn.yt_last_video_type] = 'Video'
+            time_string = [split_published_time_text_info[-3:-1]]
+            time_dict = dict(utils.fix_time_dict(fmt, amount) for amount, fmt in time_string)
+            dt = relativedelta.relativedelta(**time_dict)
+            video_published_time = datetime.datetime.now() - dt
+            df.loc[row.Index, cn.yt_last_video_published_time] = '{} ago'.format(' '.join(time_string[0]))
+            if video_published_time < datetime.datetime.now() - relativedelta.relativedelta(months=3):
+                df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
+            else:
+                df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.YES
+        else:
+            # Most likely the channel is performing live stream or premier
+            # Todo : How to make sure?
             df.loc[row.Index, cn.yt_last_video_type] = 'Streaming'
-        else:
-            df.loc[row.Index, cn.yt_last_video_type] = 'Video'
-        time_string = [split_published_time_text_info[-3:-1]]
-        time_dict = dict(utils.fix_time_dict(fmt, amount) for amount, fmt in time_string)
-        dt = relativedelta.relativedelta(**time_dict)
-        video_published_time = datetime.datetime.now() - dt
-        df.loc[row.Index, cn.yt_last_video_published_time] = '{} ago'.format(' '.join(time_string[0]))
-        if video_published_time < datetime.datetime.now() - relativedelta.relativedelta(months=3):
-            df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
-        else:
+            df.loc[row.Index, cn.yt_last_video_published_time] = 'Now (at the time this script runs)'
             df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.YES
-        df.loc[row.Index, cn.yt_last_video_view_count] = last_video['viewCountText']['simpleText'].split()[0]
-        df.loc[row.Index, cn.yt_last_video_duration] = last_video['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
+        if 'viewCountText' in last_video and 'simpleText' in last_video['viewCountText']:
+            df.loc[row.Index, cn.yt_last_video_view_count] = last_video['viewCountText']['simpleText'].split()[0]
+        else:
+            df.loc[row.Index, cn.yt_last_video_view_count] = 'Unknown'
+        if 'simpleText' in last_video['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']:
+            df.loc[row.Index, cn.yt_last_video_duration] = last_video['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
+        else:
+            df.loc[row.Index, cn.yt_last_video_duration] = 'Unknown'
     else:
         df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
         if 'messageRenderer' in videos_tab_content:

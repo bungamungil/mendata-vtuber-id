@@ -9,7 +9,6 @@ import column_names as cn
 from lxml import html
 import requests
 import json
-import ftfy
 
 
 df = pd.read_csv(os.getenv(label.IMPORT_FILE))\
@@ -37,9 +36,9 @@ for row in df.itertuples(name='Row'):
         df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.NO
         df.loc[row.Index, cn.yt_alert_text] = 'Channel not found. Response status code : {}'.format(page.status_code)
         continue
-    tree = html.fromstring(page.content)
+    tree = html.document_fromstring(page.content.decode(encoding='utf-8'))
     js_text = tree.xpath("//script[contains(., 'ytInitialData')]/text()")[0]
-    data = json.loads(utils.find_json_text(ftfy.fix_text(js_text)))
+    data = json.loads(r'%s' % utils.find_json_text(js_text))
     yt_tabbed_header = data['header']['c4TabbedHeaderRenderer']
     if 'title' in yt_tabbed_header:
         df.loc[row.Index, cn.yt_current_channel_name] = yt_tabbed_header['title']

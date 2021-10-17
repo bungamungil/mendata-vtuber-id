@@ -69,8 +69,7 @@ def generate_statistic_contributors(df: pd.DataFrame, state: str) -> None:
 
 def find_json_text(js_text: str) -> str:
     x = js_text.find(yt_js_initial_data_var_name) + len(yt_js_initial_data_var_name)
-    y = js_text.find(';')
-    return js_text[x:y]
+    return js_text[x:-1]
 
 
 def fix_time_dict(fmt: str, amount: str) -> (str, int):

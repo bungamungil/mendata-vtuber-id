@@ -36,18 +36,18 @@ map_column_names = {
 }
 
 
-def insert_channel_id_into_df(row):
+def insert_channel_id_into_df(row: pd.Series) -> str | None:
     return guess_channel_id(row[cn.yt_channel_url])
 
 
-def guess_channel_id(youtube_url):
+def guess_channel_id(youtube_url: str) -> str | None:
     split = youtube_url.split('/')
     if len(split) < 5:
         return None
     return split[4]
 
 
-def generate_statistics(df, state):
+def generate_statistics(df: pd.DataFrame, state: str) -> None:
     save_statistic_as_csv(df, "{}{}.csv".format(os.getenv(label.WORKING_DIR), state))
     print('\n--- ### {} DATA'.format(state.upper()))
     print(label.log_total_rows.format(state, len(df)))
@@ -55,7 +55,7 @@ def generate_statistics(df, state):
     generate_statistic_contributors(df, state)
 
 
-def generate_statistic_qualifications(df, state):
+def generate_statistic_qualifications(df: pd.DataFrame, state: str) -> None:
     result = pd.DataFrame()
     for (q_stat_label, q_stat_column_name) in q_stats:
         result[q_stat_column_name] = df[q_stat_column_name].value_counts()
@@ -64,24 +64,24 @@ def generate_statistic_qualifications(df, state):
     save_statistic_as_csv(result, "{}{}_statistic_qualifications.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
-def generate_statistic_contributors(df, state):
+def generate_statistic_contributors(df: pd.DataFrame, state: str) -> None:
     result = df[cn.contributor_name].value_counts()
     print(label.log_top_contributors.format(log_top_contributors_count, state))
     print(result.head(log_top_contributors_count))
     save_statistic_as_csv(result, "{}{}_statistic_contributors.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
-def find_json_text(js_text):
+def find_json_text(js_text: str) -> str:
     x = js_text.find(yt_js_initial_data_var_name) + len(yt_js_initial_data_var_name)
     y = js_text.find(';')
     return js_text[x:y]
 
 
-def fix_time_dict(fmt, amount):
+def fix_time_dict(fmt: str, amount: str) -> (str, int):
     if fmt[-1] != 's':
         fmt = '{}s'.format(fmt)
     return fmt, int(amount)
 
 
-def save_statistic_as_csv(df: pd.DataFrame | pd.Series, filename: str):
+def save_statistic_as_csv(df: pd.DataFrame | pd.Series, filename: str) -> None:
     df.to_csv(filename)

@@ -1,4 +1,5 @@
 IMPORT_FILE = 'IMPORT_FILE'
+WORKING_DIR = 'WORKING_DIR'
 log_importing = '--- # Importing data data from {}'
 log_total_rows = '--- ### Total rows on {} data : {} rows'
 log_top_contributors = '--- ### Top {} contributors on {} data :'

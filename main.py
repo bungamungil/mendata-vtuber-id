@@ -10,15 +10,13 @@ from lxml import html
 import requests
 import json
 
-statistic_qualifications = {}
-statistic_contributors = {}
 
 df = pd.read_csv(os.getenv(label.IMPORT_FILE))\
     .rename(columns=utils.map_column_names, errors='raise')\
     .drop(columns=['Media Sosial'])
 
 # Proceed raw data
-utils.generate_statistics(df, 'raw', statistic_qualifications, statistic_contributors)
+utils.generate_statistics(df, 'raw')
 
 # Proceed clean data
 df.loc[:, cn.yt_channel_id] = df.apply(lambda _row: utils.insert_channel_id_into_df(_row), axis=1)
@@ -26,7 +24,7 @@ df = df\
     .dropna(subset=[cn.yt_channel_id])\
     .drop_duplicates(subset=[cn.yt_channel_id], keep='last')\
     .drop(columns=[cn.yt_channel_url])
-utils.generate_statistics(df, 'clean', statistic_qualifications, statistic_contributors)
+utils.generate_statistics(df, 'clean')
 
 
 # Proceed valid data

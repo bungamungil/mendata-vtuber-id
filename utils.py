@@ -1,3 +1,5 @@
+import os
+import pandas
 import column_names as cn
 import label
 
@@ -43,25 +45,29 @@ def guess_channel_id(youtube_url):
     return split[4]
 
 
-def generate_statistics(df, state, s_qualifications, s_contributors):
+def generate_statistics(df, state):
+    df.to_csv("{}{}.csv".format(os.getenv(label.WORKING_DIR), state))
     print('\n--- ### {} DATA'.format(state.upper()))
     print(label.log_total_rows.format(state, len(df)))
-    generate_statistic_qualifications(df, state, s_qualifications)
-    generate_statistic_contributors(df, state, s_contributors)
+    generate_statistic_qualifications(df, state)
+    generate_statistic_contributors(df, state)
 
 
-def generate_statistic_qualifications(df, state, statistic):
-    statistic[state] = {}
+def generate_statistic_qualifications(df, state):
+    result = {}
     for (q_stat_label, q_stat_column_name) in q_stats:
-        statistic[state][q_stat_column_name] = df[q_stat_column_name].value_counts()
+        result[q_stat_column_name] = df[q_stat_column_name].value_counts()
         print(q_stat_label.format(state))
-        print(statistic[state][q_stat_column_name])
+        print(result[q_stat_column_name])
+    pandas.DataFrame.from_dict(result)\
+        .to_csv("{}{}_statistic_qualifications.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
-def generate_statistic_contributors(df, state, statistic):
-    statistic[state] = df[cn.contributor_name].value_counts()
+def generate_statistic_contributors(df, state):
+    result = df[cn.contributor_name].value_counts()
     print(label.log_top_contributors.format(log_top_contributors_count, state))
-    print(statistic[state].head(log_top_contributors_count))
+    print(result.head(log_top_contributors_count))
+    result.to_csv("{}{}_statistic_contributors.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
 def find_json_text(js_text):

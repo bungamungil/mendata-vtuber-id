@@ -9,6 +9,7 @@ import column_names as cn
 from lxml import html
 import requests
 import json
+import ftfy
 
 
 df = pd.read_csv(os.getenv(label.IMPORT_FILE))\
@@ -28,62 +29,68 @@ utils.generate_statistics(df, 'clean')
 
 
 # Proceed valid data
-sample_df = df.head(20)
-for row in sample_df.itertuples(name='Row'):
+# sample_df = df.head(20)
+for row in df.itertuples(name='Row'):
     page = requests.get('https://www.youtube.com/channel/{}/videos?hl=en'.format(row.yt_channel_id))
+    if page.status_code != 200:
+        df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
+        df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.NO
+        df.loc[row.Index, cn.yt_alert_text] = 'Channel not found. Response status code : {}'.format(page.status_code)
+        continue
     tree = html.fromstring(page.content)
     js_text = tree.xpath("//script[contains(., 'ytInitialData')]/text()")[0]
-    data = json.loads(utils.find_json_text(js_text))
+    data = json.loads(utils.find_json_text(ftfy.fix_text(js_text)))
     yt_tabbed_header = data['header']['c4TabbedHeaderRenderer']
     if 'title' in yt_tabbed_header:
-        sample_df.loc[row.Index, cn.yt_current_channel_name] = yt_tabbed_header['title']
+        df.loc[row.Index, cn.yt_current_channel_name] = yt_tabbed_header['title']
     else:
         if 'alerts' in data:
-            sample_df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
-            sample_df.loc[row.Index, cn.yt_alert_text] = data['alerts'][0]['alertRenderer']['text']['simpleText']
+            df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
+            df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.NO
+            df.loc[row.Index, cn.yt_alert_text] = data['alerts'][0]['alertRenderer']['text']['simpleText']
             continue
     if 'avatar' in yt_tabbed_header:
-        sample_df.loc[row.Index, cn.yt_current_avatar] = yt_tabbed_header['avatar']['thumbnails'][-1]['url']
+        df.loc[row.Index, cn.yt_current_avatar] = yt_tabbed_header['avatar']['thumbnails'][-1]['url']
     if 'banner' in yt_tabbed_header:
-        sample_df.loc[row.Index, cn.yt_current_banner] = yt_tabbed_header['banner']['thumbnails'][-1]['url']
+        df.loc[row.Index, cn.yt_current_banner] = yt_tabbed_header['banner']['thumbnails'][-1]['url']
     if 'subscriberCountText' in yt_tabbed_header:
-        sample_df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.YES
+        df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.YES
         subs_count = data['header']['c4TabbedHeaderRenderer']['subscriberCountText']['simpleText'].split(' ')[0]
-        sample_df.loc[row.Index, cn.yt_subscribers_count] = subs_count
+        df.loc[row.Index, cn.yt_subscribers_count] = subs_count
     else:
-        sample_df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.NO
+        df.loc[row.Index, cn.auto_verify_q_by_public_subs_count] = label.NO
     videos_tab_content = last_video = data['contents']['twoColumnBrowseResultsRenderer']['tabs'][1]['tabRenderer']['content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents'][0]
     if 'gridRenderer' in videos_tab_content:
         last_video = videos_tab_content['gridRenderer']['items'][0]['gridVideoRenderer']
-        sample_df.loc[row.Index, cn.yt_last_video_id] = last_video['videoId']
-        sample_df.loc[row.Index, cn.yt_last_video_thumbnail] = last_video['thumbnail']['thumbnails'][-1]['url']
-        sample_df.loc[row.Index, cn.yt_last_video_title] = last_video['title']['runs'][0]['text']
+        df.loc[row.Index, cn.yt_last_video_id] = last_video['videoId']
+        df.loc[row.Index, cn.yt_last_video_thumbnail] = last_video['thumbnail']['thumbnails'][-1]['url']
+        df.loc[row.Index, cn.yt_last_video_title] = last_video['title']['runs'][0]['text']
         split_published_time_text_info = last_video['publishedTimeText']['simpleText'].split()
         if split_published_time_text_info[0] == 'Streamed':
-            sample_df.loc[row.Index, cn.yt_last_video_type] = 'Streaming'
+            df.loc[row.Index, cn.yt_last_video_type] = 'Streaming'
         else:
-            sample_df.loc[row.Index, cn.yt_last_video_type] = 'Video'
+            df.loc[row.Index, cn.yt_last_video_type] = 'Video'
         time_string = [split_published_time_text_info[-3:-1]]
         time_dict = dict(utils.fix_time_dict(fmt, amount) for amount, fmt in time_string)
         dt = relativedelta.relativedelta(**time_dict)
         video_published_time = datetime.datetime.now() - dt
-        sample_df.loc[row.Index, cn.yt_last_video_published_time] = '{} ago'.format(' '.join(time_string[0]))
+        df.loc[row.Index, cn.yt_last_video_published_time] = '{} ago'.format(' '.join(time_string[0]))
         if video_published_time < datetime.datetime.now() - relativedelta.relativedelta(months=3):
-            sample_df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
+            df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
         else:
-            sample_df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.YES
-        sample_df.loc[row.Index, cn.yt_last_video_view_count] = last_video['viewCountText']['simpleText'].split()[0]
-        sample_df.loc[row.Index, cn.yt_last_video_duration] = last_video['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
+            df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.YES
+        df.loc[row.Index, cn.yt_last_video_view_count] = last_video['viewCountText']['simpleText'].split()[0]
+        df.loc[row.Index, cn.yt_last_video_duration] = last_video['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
     else:
-        sample_df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
+        df.loc[row.Index, cn.auto_verify_q_by_active_on_past_3_months] = label.NO
         if 'messageRenderer' in videos_tab_content:
-            sample_df.loc[row.Index, cn.yt_alert_text] = videos_tab_content['messageRenderer']['text']['simpleText']
+            df.loc[row.Index, cn.yt_alert_text] = videos_tab_content['messageRenderer']['text']['simpleText']
             continue
 
-sample_df.loc[:, cn.yt_subscribers_count] = sample_df[cn.yt_subscribers_count].fillna(0).replace({'K': '*1e3', 'M': '*1e6'}, regex=True).map(pd.eval).astype(int)
+df.loc[:, cn.yt_subscribers_count] = df[cn.yt_subscribers_count].fillna(0).replace({'K': '*1e3', 'M': '*1e6'}, regex=True).map(pd.eval).astype(int)
 
-sample_verified_df = sample_df[sample_df[cn.auto_verify_q_by_active_on_past_3_months] == label.YES][sample_df[cn.auto_verify_q_by_public_subs_count] == label.YES]
-print(len(sample_df))
+df = df[df[cn.auto_verify_q_by_active_on_past_3_months] == label.YES][df[cn.auto_verify_q_by_public_subs_count] == label.YES]
+utils.generate_statistics(df, 'verified')
 
 verified_column_titles = [
     '#',
@@ -118,7 +125,7 @@ with open('verified.html', 'w', encoding='utf-8') as f:
     for title in verified_column_titles:
         f.write('<th>{}</th>'.format(title))
     f.write('</tr>')
-    for row in sample_verified_df.itertuples(name='Row'):
+    for row in df.itertuples(name='Row'):
         f.write('<tr>')
         f.write('<td>{}</td>'.format(row.Index))
         f.write('<td style="text-align: left;">{}</td>'.format(row.yt_current_channel_name))

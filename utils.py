@@ -1,5 +1,5 @@
 import os
-import pandas
+import pandas as pd
 import column_names as cn
 import label
 
@@ -59,7 +59,7 @@ def generate_statistic_qualifications(df, state):
         result[q_stat_column_name] = df[q_stat_column_name].value_counts()
         print(q_stat_label.format(state))
         print(result[q_stat_column_name])
-    pandas.DataFrame.from_dict(result)\
+    pd.DataFrame.from_dict(result)\
         .to_csv("{}{}_statistic_qualifications.csv".format(os.getenv(label.WORKING_DIR), state))
 
 

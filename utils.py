@@ -36,10 +36,6 @@ map_column_names = {
 }
 
 
-def insert_channel_id_into_df(row: pd.Series) -> str | None:
-    return guess_channel_id(row[cn.yt_channel_url])
-
-
 def guess_channel_id(youtube_url: str) -> str | None:
     split = youtube_url.split('/')
     if len(split) < 5:

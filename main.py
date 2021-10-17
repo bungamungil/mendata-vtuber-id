@@ -19,7 +19,7 @@ df = pd.read_csv(os.getenv(label.IMPORT_FILE))\
 utils.generate_statistics(df, 'raw')
 
 # Proceed clean data
-df.loc[:, cn.yt_channel_id] = df.apply(lambda _row: utils.insert_channel_id_into_df(_row), axis=1)
+df.loc[:, cn.yt_channel_id] = df.apply(lambda _row: utils.guess_channel_id(_row[cn.yt_channel_url]), axis=1)
 df = df\
     .dropna(subset=[cn.yt_channel_id])\
     .drop_duplicates(subset=[cn.yt_channel_id], keep='last')\

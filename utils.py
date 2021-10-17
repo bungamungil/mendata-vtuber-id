@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import pandas as pd
 import column_names as cn
@@ -46,7 +48,7 @@ def guess_channel_id(youtube_url):
 
 
 def generate_statistics(df, state):
-    df.to_csv("{}{}.csv".format(os.getenv(label.WORKING_DIR), state))
+    save_statistic_as_csv(df, "{}{}.csv".format(os.getenv(label.WORKING_DIR), state))
     print('\n--- ### {} DATA'.format(state.upper()))
     print(label.log_total_rows.format(state, len(df)))
     generate_statistic_qualifications(df, state)
@@ -54,20 +56,19 @@ def generate_statistics(df, state):
 
 
 def generate_statistic_qualifications(df, state):
-    result = {}
+    result = pd.DataFrame()
     for (q_stat_label, q_stat_column_name) in q_stats:
         result[q_stat_column_name] = df[q_stat_column_name].value_counts()
         print(q_stat_label.format(state))
         print(result[q_stat_column_name])
-    pd.DataFrame.from_dict(result)\
-        .to_csv("{}{}_statistic_qualifications.csv".format(os.getenv(label.WORKING_DIR), state))
+    save_statistic_as_csv(result, "{}{}_statistic_qualifications.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
 def generate_statistic_contributors(df, state):
     result = df[cn.contributor_name].value_counts()
     print(label.log_top_contributors.format(log_top_contributors_count, state))
     print(result.head(log_top_contributors_count))
-    result.to_csv("{}{}_statistic_contributors.csv".format(os.getenv(label.WORKING_DIR), state))
+    save_statistic_as_csv(result, "{}{}_statistic_contributors.csv".format(os.getenv(label.WORKING_DIR), state))
 
 
 def find_json_text(js_text):
@@ -80,3 +81,7 @@ def fix_time_dict(fmt, amount):
     if fmt[-1] != 's':
         fmt = '{}s'.format(fmt)
     return fmt, int(amount)
+
+
+def save_statistic_as_csv(df: pd.DataFrame | pd.Series, filename: str):
+    df.to_csv(filename)
